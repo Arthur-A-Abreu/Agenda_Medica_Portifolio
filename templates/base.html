@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="{% block meta_description %}Sistema de Calendário de Plantões Médicos{% endblock %}">
+    <title>{% block title %}Calendário de Plantões{% endblock %} — MedAgenda</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS Base -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+
+    <!-- CSS específico da página -->
+    {% block extra_css %}{% endblock %}
+
+    <!-- Prevenção de flash do dark mode -->
+    <script>
+        (function () {
+            const saved = localStorage.getItem('cp_dark_mode');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = saved !== null ? saved === 'true' : prefersDark;
+            if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-layout">
+
+        <!-- ════════════════════════════════
+         SIDEBAR
+         ════════════════════════════════ -->
+        <aside class="sidebar" id="appSidebar" role="navigation" aria-label="Menu principal">
+
+            <!-- Brand -->
+            <a href="/" class="sidebar-brand" id="sidebar-brand-link">
+                <div class="sidebar-brand-icon">
+                    {% if global_config.logo_hospital %}
+                    <img src="{{ global_config.logo_hospital.url }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;">
+                    {% else %}
+                    🏥
+                    {% endif %}
+                </div>
+                <div class="sidebar-brand-text">
+                    <div class="sidebar-brand-name">{{ global_config.nome_hospital }}</div>
+                    <div class="sidebar-brand-sub">Calendário de Plantões</div>
+                </div>
+            </a>
+
+            <!-- Nav Links -->
+            <nav class="sidebar-nav" id="sidebar-nav">
+                {% if user.is_authenticated %}
+                <span class="sidebar-section-label">Principal</span>
+
+                <a href="{% url 'dashboard' %}" class="nav-item" id="nav-dashboard">
+                    <span class="nav-item-icon">📊</span>
+                    <span class="nav-item-text">Painel de Indicadores</span>
+                </a>
+
+                <a href="{% url 'calendario' %}" class="nav-item" id="nav-calendario">
+                    <span class="nav-item-icon">📅</span>
+                    <span class="nav-item-text">Calendário</span>
+                </a>
+
+                <a href="{% url 'agenda_medicos' %}" class="nav-item" id="nav-agenda">
+                    <span class="nav-item-icon">🗓️</span>
+                    <span class="nav-item-text">Minha Agenda</span>
+                </a>
+
+                {% if user.is_superuser %}
+                <span class="sidebar-section-label">Administração</span>
+                
+                <a href="{% url 'medico_list' %}" class="nav-item" id="nav-medicos">
+                    <span class="nav-item-icon">👨‍⚕️</span>
+                    <span class="nav-item-text">Médicos</span>
+                </a>
+
+                <a href="{% url 'configuracoes' %}" class="nav-item" id="nav-config">
+                    <span class="nav-item-icon">⚙️</span>
+                    <span class="nav-item-text">Configurações</span>
+                </a>
+
+                <a href="{% url 'user_list' %}" class="nav-item" id="nav-users">
+                    <span class="nav-item-icon">👥</span>
+                    <span class="nav-item-text">Usuários</span>
+                </a>
+
+                <a href="{% url 'gerenciar_trocas' %}" class="nav-item" id="nav-swaps">
+                    <span class="nav-item-icon">🔄</span>
+                    <span class="nav-item-text">Trocas Pendentes</span>
+                    {% if pending_swaps_count > 0 %}
+                    <span style="background: #ef4444; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: 800; margin-left: auto;">{{ pending_swaps_count }}</span>
+                    {% endif %}
+                </a>
+
+                <a href="{% url 'historico_mudancas' %}" class="nav-item" id="nav-history">
+                    <span class="nav-item-icon">📜</span>
+                    <span class="nav-item-text">Histórico</span>
+                </a>
+
+                <a href="{% url 'lista_anuncios' %}" class="nav-item" id="nav-anuncios">
+                    <span class="nav-item-icon">📢</span>
+                    <span class="nav-item-text">Anúncios</span>
+                </a>
+                {% endif %}
+                {% else %}
+                <div style="padding: 1rem; text-align: center;">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Acesse para gerenciar plantões.</p>
+                    <a href="{% url 'login' %}" class="btn-save-settings" style="width: 100%; text-decoration: none; display: flex; justify-content: center; padding: 0.75rem;">Entrar</a>
+                </div>
+                {% endif %}
+            </nav>
+
+            <!-- Footer: Usuário + Dark Mode -->
+            <div class="sidebar-footer">
+
+                <!-- Botão Dark Mode -->
+                <button class="dark-toggle" id="darkModeToggle" aria-label="Alternar modo escuro" type="button">
+                    <span class="dark-toggle-icon" id="darkToggleIcon">🌙</span>
+                    <span id="darkToggleLabel">Modo Escuro</span>
+                    <div class="toggle-track" aria-hidden="true">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                </button>
+
+                <!-- Usuário -->
+                {% if user.is_authenticated %}
+                <a href="{% url 'profile_view' %}" class="sidebar-user" style="text-decoration: none;">
+                    <div class="user-avatar">
+                        {% if user.perfil_medico and user.perfil_medico.foto %}
+                        <img src="{{ user.perfil_medico.foto.url }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+                        {% else %}
+                        {{ user.username|first|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">
+                            {% if user.perfil_medico %}{{ user.perfil_medico.nome }}
+                            {% else %}{{ user.username }}
+                            {% endif %}
+                        </div>
+                        <div class="user-role">
+                            {% if user.is_superuser %}Administrador
+                            {% elif user.is_staff %}Equipe
+                            {% else %}Médico
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+
+                <form action="{% url 'logout' %}" method="post" style="display: block;">
+                    {% csrf_token %}
+                    <button type="submit" class="dark-toggle" style="color: #ef4444; width: 100%; text-align: left;">
+                        <span class="dark-toggle-icon">🚪</span>
+                        <span class="nav-item-text">Sair do Sistema</span>
+                    </button>
+                </form>
+                {% endif %}
+
+            </div>
+        </aside>
+
+        <!-- Overlay mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+        <!-- ════════════════════════════════
+         MAIN WRAPPER
+         ════════════════════════════════ -->
+        <div class="main-wrapper">
+
+            <!-- Topbar -->
+            <header class="topbar" id="main-topbar">
+                <!-- Botão hambúrguer (mobile) -->
+                <button class="topbar-menu-btn" id="sidebarMenuBtn" aria-label="Abrir menu" type="button">
+                    ☰
+                </button>
+
+                <h1 class="topbar-title">{% block page_title %}Calendário de Plantões{% endblock %}</h1>
+
+                <div class="topbar-actions">
+                    {% block topbar_actions %}{% endblock %}
+                </div>
+            </header>
+
+            <!-- Conteúdo da Página -->
+            <main class="page-content" id="main-content">
+
+                <!-- Mensagens do Django -->
+                {% if messages %}
+                <div class="messages" role="alert">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+
+            </main>
+        </div>
+
+    </div><!-- /.app-layout -->
+
+    <!-- JS Base -->
+    <script src="{% static 'js/base.js' %}"></script>
+
+    <!-- JS específico da página -->
+    {% block extra_js %}{% endblock %}
+
+</body>
+
+</html>

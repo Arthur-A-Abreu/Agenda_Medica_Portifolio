@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gerenciar Trocas de Plantão{% endblock %}
+{% block page_title %}🔄 Solicitações de Troca{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-title">
+        <span>⏳</span> Solicitações Pendentes ({{ solicitacoes.count }})
+    </div>
+    
+    {% if solicitacoes %}
+    <div class="table-wrap">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem;">Data do Plantão</th>
+                    <th style="padding: 1rem;">Solicitante</th>
+                    <th style="padding: 1rem;">Substituto Proposto</th>
+                    <th style="padding: 1rem;">Mensagem</th>
+                    <th style="padding: 1rem;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in solicitacoes %}
+                <tr style="border-bottom: 1px solid var(--border-color);" id="troca-{{ t.id }}">
+                    <td style="padding: 1rem;">
+                        <div style="font-weight: 700; color: var(--accent-primary);">{{ t.plantao.data|date:"d/m/Y" }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ t.plantao.get_periodo_display }}</div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <strong>{{ t.medico_solicitante.nome }}</strong>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <span style="color: var(--accent-hover);">➡️ {{ t.medico_novo.nome }}</span>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); font-style: italic;">
+                            {{ t.mensagem|default:"Sem mensagem" }}
+                        </div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="responderTroca({{ t.id }}, 'aprovar')" class="btn-approve" style="background: var(--accent-primary); color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;">✅ Aprovar</button>
+                            <button onclick="responderTroca({{ t.id }}, 'recusar')" class="btn-deny" style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;">❌ Recusar</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">✨</p>
+        <p>Não há solicitações de troca pendentes no momento.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function responderTroca(id, acao) {
+    if (!confirm('Tem certeza que deseja ' + acao + ' esta troca?')) return;
+    
+    const formData = new FormData();
+    formData.append('acao', acao);
+    
+    fetch(`/plantoes/responder-troca/${id}/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            document.getElementById(`troca-${id}`).style.opacity = '0.5';
+            document.getElementById(`troca-${id}`).style.pointerEvents = 'none';
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    });
+}
+</script>
+
+<style>
+    .btn-approve:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .btn-deny:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+</style>
+{% endblock %}

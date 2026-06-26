@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meu Perfil — MedAgenda{% endblock %}
+{% block page_title %}👤 Meu Perfil{% endblock %}
+
+{% block content %}
+<div class="settings-container" style="max-width: 600px; margin: 0 auto;">
+    <div class="card" style="padding: 2rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--accent-primary), var(--green-600)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 1rem; color: white; box-shadow: 0 8px 20px var(--accent-glow);">
+                {% if user.perfil_medico and user.perfil_medico.foto %}
+                <img src="{{ user.perfil_medico.foto.url }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                {{ user.username|first|upper }}
+                {% endif %}
+            </div>
+            <h2 style="color: var(--text-primary); margin-bottom: 0.25rem;">{{ user.username }}</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                {% if user.is_superuser %}Administrador do Sistema
+                {% else %}Profissional de Saúde
+                {% endif %}
+            </p>
+        </div>
+
+        {% if user.perfil_medico %}
+        <div style="background: var(--bg-body); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid var(--border-color);">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">🏥 Dados Profissionais</h3>
+            <div style="display: grid; gap: 0.75rem; font-size: 0.9rem;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Nome:</span>
+                    <span style="font-weight: 600;">{{ user.perfil_medico.nome }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">CRM:</span>
+                    <span style="font-weight: 600;">{{ user.perfil_medico.crm }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">E-mail:</span>
+                    <span style="font-weight: 600;">{{ user.perfil_medico.email|default:"Não informado" }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="border-top: 1px solid var(--border-color); padding-top: 2rem;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1.5rem;">🔒 Alterar Senha</h3>
+            <form method="post" action="{% url 'profile_update' %}">
+                {% csrf_token %}
+                <div style="display: grid; gap: 1rem;">
+                    <div class="form-group">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Nova Senha</label>
+                        <input type="password" name="password" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-primary);">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Confirmar Nova Senha</label>
+                        <input type="password" name="password_conf" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-primary);">
+                    </div>
+                    <button type="submit" class="btn-update-password">
+                        <span>🔐</span> Atualizar Senha com Segurança
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-update-password {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--accent-primary), var(--green-600));
+        color: white;
+        border: none;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 15px var(--accent-glow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-update-password::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: 0.5s;
+    }
+
+    .btn-update-password:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px var(--accent-glow);
+        filter: brightness(1.1);
+    }
+
+    .btn-update-password:hover::before {
+        left: 100%;
+    }
+
+    .btn-update-password:active {
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}

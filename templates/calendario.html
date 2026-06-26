@@ -1,0 +1,899 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Calendário de Plantões{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}">
+<style>
+    /* Estilos para o Modal de Troca */
+    .swap-modal {
+        max-width: 480px !important;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .swap-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .swap-info {
+        background: linear-gradient(135deg, var(--bg-hover) 0%, var(--green-100) 100%);
+        padding: 1.25rem;
+        border-radius: 16px;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        box-shadow: inset 0 2px 4px rgba(255,255,255,0.5);
+    }
+    .swap-info strong {
+        color: var(--accent-primary);
+        font-weight: 800;
+    }
+    .btn-request-swap {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7); /* Fundo ambar claro */
+        color: #b45309; /* Texto laranja escuro */
+        border: 1px solid #fde68a;
+        padding: 0.6rem 1rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-top: 0.5rem;
+        display: none; /* Só mostra se for o dono */
+        width: 100%;
+        display: flex; /* overridden by inline style if not owner, need to handle carefully */
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .btn-request-swap:hover {
+        background: linear-gradient(135deg, #f59e0b, #d97706); /* Laranja vibrante no hover */
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+    
+    .swap-select-wrapper {
+        position: relative;
+    }
+    .swap-select-wrapper select {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 2px solid var(--border-color);
+        background: var(--bg-input);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.95rem;
+        appearance: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .swap-select-wrapper select:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+    .swap-select-wrapper::after {
+        content: "▼";
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    .swap-textarea {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 2px solid var(--border-color);
+        background: var(--bg-input);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        resize: vertical;
+        min-height: 80px;
+    }
+    .swap-textarea:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+    
+    .btn-submit-swap {
+        background: linear-gradient(135deg, var(--accent-primary), var(--green-600));
+        color: white;
+        border: none;
+        padding: 1rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px var(--accent-glow);
+    }
+    .btn-submit-swap:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--accent-glow);
+    }
+
+    /* --- Export Button for Calendario --- */
+    .btn-export-calendario {
+        background: linear-gradient(135deg, var(--accent-primary), var(--green-600));
+        color: white;
+        text-decoration: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 4px 15px var(--accent-glow);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-export-calendario:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 10px 25px var(--accent-glow);
+        filter: brightness(1.1);
+    }
+
+    .btn-export-calendario:active {
+        transform: translateY(1px);
+    }
+
+    /* --- Forcing equal distribution --- */
+    .month-nav {
+        display: flex !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        gap: 0.5rem !important;
+    }
+    .month-nav-link {
+        flex: 1 !important;
+        text-align: center !important;
+    }
+
+    /* --- Forcing height fixes --- */
+    .calendar-page {
+        height: auto !important;
+        min-height: calc(100vh - var(--topbar-height) - 2rem) !important;
+        padding-bottom: 6rem !important; /* Mais espaço no rodapé */
+        display: grid !important;
+    }
+    .calendar-container {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+    }
+    .calendar-grid {
+        height: auto !important;
+        display: grid !important;
+        grid-template-rows: auto; /* Permite que as linhas cresçam conforme necessário */
+    }
+    .calendar-day {
+        min-height: 140px !important; 
+    }
+
+    /* --- Tabs System for Sidebar --- */
+    .sidebar-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        background: var(--bg-body);
+        padding: 0.4rem;
+        border-radius: 12px;
+    }
+    .tab-btn {
+        flex: 1;
+        padding: 0.6rem;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    .tab-btn.active {
+        background: white;
+        color: var(--accent-primary);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease;
+        min-height: 0; /* Fundamental para o scroll do flexbox */
+    }
+    .tab-content.active {
+        display: flex;
+        flex: 1; /* Faz o conteúdo da aba ocupar todo o espaço restante */
+        flex-direction: column;
+        gap: 0.75rem;
+        min-height: 0; 
+    }
+
+    /* --- Announcement Item --- */
+    .announcement-item {
+        background: linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%);
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        padding: 1rem;
+        position: relative;
+    }
+    .announcement-title {
+        font-weight: 800;
+        color: #92400e;
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+    }
+    .announcement-text {
+        font-size: 0.8rem;
+        color: #b45309;
+        line-height: 1.4;
+    }
+    .announcement-meta {
+        font-size: 0.7rem;
+        color: #d97706;
+        margin-top: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* --- Shift List Item --- */
+    .sidebar-shift-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+    }
+    
+    /* Garantir que o container da lista tenha altura baseada na tela e role se necessário */
+    .doctor-list {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding-right: 0.5rem;
+        min-height: 0; /* Fundamental para o scroll do flexbox */
+    }
+
+    /* Estilização da scrollbar para ficar bem visível */
+    .doctor-list::-webkit-scrollbar {
+        width: 8px;
+    }
+    .doctor-list::-webkit-scrollbar-track {
+        background: var(--bg-body);
+        border-radius: 10px;
+    }
+    .doctor-list::-webkit-scrollbar-thumb {
+        background: var(--accent-primary);
+        border-radius: 10px;
+        border: 2px solid var(--bg-body);
+    }
+    .doctor-list::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-hover);
+    }
+    /* Fazer a sidebar acompanhar o scroll do calendário */
+    .doctor-sidebar {
+        position: sticky !important;
+        top: calc(var(--topbar-height) + 1rem) !important;
+        height: calc(100vh - var(--topbar-height) - 2rem) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 1.5rem !important; /* Restaurado padding para alinhamento */
+        overflow: hidden !important;
+    }
+    .shift-day-badge {
+        width: 36px;
+        height: 36px;
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 0.9rem;
+    }
+    .shift-details {
+        flex: 1;
+        min-width: 0;
+    }
+    .shift-doctor-name {
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .shift-period-info {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block page_title %}📅 Escala Médica{% endblock %}
+
+{% block content %}
+<div class="calendar-page">
+    <main class="calendar-container">
+        <!-- Header: Meses e Navegação -->
+        <header class="calendar-header">
+            <div class="current-month-display">
+                <span>🗓️</span> {{ current_month_name }}
+            </div>
+            <nav class="month-nav">
+                {% for m in months_nav %}
+                <a href="?year={{ m.year }}&month={{ m.month }}" 
+                   class="month-nav-link {% if m.active %}active{% endif %}"
+                   title="{{ m.full_name }}">
+                    {{ m.name }}
+                </a>
+                {% endfor %}
+            </nav>
+            {% if user.is_superuser %}
+            <div class="calendar-export-action" style="margin-top: 0.5rem;">
+                <a href="{% url 'exportar_agenda_geral_excel' %}?year={{ year }}&month={{ month }}" class="btn-export-calendario">
+                    📊 Baixar Planilha deste Mês
+                </a>
+            </div>
+            {% endif %}
+        </header>
+
+        <!-- Grade do Calendário -->
+        <div class="calendar-grid">
+            <!-- Dias da Semana -->
+            <div class="calendar-weekday">Dom</div>
+            <div class="calendar-weekday">Seg</div>
+            <div class="calendar-weekday">Ter</div>
+            <div class="calendar-weekday">Qua</div>
+            <div class="calendar-weekday">Qui</div>
+            <div class="calendar-weekday">Sex</div>
+            <div class="calendar-weekday">Sáb</div>
+
+            <!-- Dias do Mês -->
+            {% for week in month_days %}
+                {% for day in week %}
+                    {% if day == 0 %}
+                        <div class="calendar-day other-month"></div>
+                    {% else %}
+                        <div class="calendar-day" onclick="openDayModal({{ year }}, {{ month }}, {{ day }})">
+                            <span class="day-number">{{ day }}</span>
+                            
+                            <div class="shifts-summary">
+                                {% with shifts=shifts_by_day|get_item:day %}
+                                    {% if shifts.D %}
+                                        <div class="shift-tag period-D" title="Dia: {{ shifts.D.medico.nome }}">
+                                            <span class="doctor-name">{{ shifts.D.medico.nome }}</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if shifts.M %}
+                                        <div class="shift-tag period-M" title="Manhã: {{ shifts.M.medico.nome }}">
+                                            <span class="doctor-name">{{ shifts.M.medico.nome }}</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if shifts.T %}
+                                        <div class="shift-tag period-T" title="Tarde: {{ shifts.T.medico.nome }}">
+                                            <span class="doctor-name">{{ shifts.T.medico.nome }}</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if shifts.N %}
+                                        <div class="shift-tag period-N" title="Noite: {{ shifts.N.medico.nome }}">
+                                            <span class="doctor-name">{{ shifts.N.medico.nome }}</span>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </main>
+
+    <!-- Sidebar: Plantões do Mês e Anúncios -->
+    <aside class="doctor-sidebar">
+        <div class="sidebar-tabs">
+            <button class="tab-btn active" onclick="switchTab('shifts')">📅 Escala</button>
+            <button class="tab-btn" onclick="switchTab('announcements')">📢 Anúncios {% if anuncios_ativos %}<span style="background: #ef4444; color: white; padding: 2px 5px; border-radius: 50%; font-size: 0.6rem;">{{ anuncios_ativos|length }}</span>{% endif %}</button>
+        </div>
+
+        <!-- Conteúdo: Lista de Plantões -->
+        <div id="shifts-tab" class="tab-content active">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="shiftSearch" placeholder="Buscar médico ou dia..." onkeyup="filterShifts()">
+            </div>
+            
+            <div class="doctor-list" id="shiftList">
+                {% for shift in all_shifts_list %}
+                <div class="sidebar-shift-item" data-search="{{ shift.medico|lower }} dia {{ shift.dia }}">
+                    <div class="shift-day-badge">{{ shift.dia }}</div>
+                    <div class="shift-details">
+                        <span class="shift-doctor-name">{{ shift.medico }}</span>
+                        <span class="shift-period-info">{{ shift.periodo }}</span>
+                    </div>
+                    <div class="period-dot period-{{ shift.periodo_code }}" style="width: 8px; height: 8px; border-radius: 50%;"></div>
+                </div>
+                {% empty %}
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 1rem;">Nenhum plantão escalado.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Conteúdo: Anúncios -->
+        <div id="announcements-tab" class="tab-content">
+            <div class="doctor-list">
+                {% for anuncio in anuncios_ativos %}
+                <div class="announcement-item">
+                    <div class="announcement-title">{{ anuncio.titulo }}</div>
+                    <div class="announcement-text">{{ anuncio.conteudo|linebreaksbr }}</div>
+                    <div class="announcement-meta">
+                        <span>✍️ {{ anuncio.autor.username }}</span>
+                        <span>🗓️ {{ anuncio.criado_em|date:"d/m" }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📭</div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">Nenhum anúncio ativo no momento.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+
+<!-- Modal de Edição -->
+<div class="modal-overlay" id="dayModal" onclick="checkClose(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <header class="modal-header">
+            <h2 class="modal-title">Escalar Plantões</h2>
+            <p class="modal-date" id="modalDateDisplay"></p>
+        </header>
+
+        <div class="shift-editor">
+            <!-- Dia Completo -->
+            <div class="editor-slot">
+                <div class="editor-label">🌤️ Dia (07:00 - 19:00)</div>
+                <div class="slot-input-group">
+                    <select id="select-D" onchange="onSelectChange('D')">
+                        <option value="">-- Vazio --</option>
+                        {% for m in medicos %}
+                        <option value="{{ m.id }}">{{ m.nome }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn-action btn-replicate-mini" onclick="replicateShift('D')" title="Repetir para o resto do mês">🔁</button>
+                    <button class="btn-action btn-delete-mini" onclick="deleteShift('D')" title="Excluir">✕</button>
+                </div>
+                <button id="btn-swap-D" class="btn-request-swap" onclick="openSwapModal('D')">🔄 Solicitar Troca</button>
+            </div>
+
+            <!-- Manhã -->
+            <div class="editor-slot">
+                <div class="editor-label">☀️ Manhã (07:00 - 13:00)</div>
+                <div class="slot-input-group">
+                    <select id="select-M" onchange="onSelectChange('M')">
+                        <option value="">-- Vazio --</option>
+                        {% for m in medicos %}
+                        <option value="{{ m.id }}">{{ m.nome }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn-action btn-replicate-mini" onclick="replicateShift('M')" title="Repetir para o resto do mês">🔁</button>
+                    <button class="btn-action btn-delete-mini" onclick="deleteShift('M')" title="Excluir">✕</button>
+                </div>
+                <button id="btn-swap-M" class="btn-request-swap" onclick="openSwapModal('M')">🔄 Solicitar Troca</button>
+            </div>
+
+            <!-- Tarde -->
+            <div class="editor-slot">
+                <div class="editor-label">🌇 Tarde (13:00 - 19:00)</div>
+                <div class="slot-input-group">
+                    <select id="select-T" onchange="onSelectChange('T')">
+                        <option value="">-- Vazio --</option>
+                        {% for m in medicos %}
+                        <option value="{{ m.id }}">{{ m.nome }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn-action btn-replicate-mini" onclick="replicateShift('T')" title="Repetir para o resto do mês">🔁</button>
+                    <button class="btn-action btn-delete-mini" onclick="deleteShift('T')" title="Excluir">✕</button>
+                </div>
+                <button id="btn-swap-T" class="btn-request-swap" onclick="openSwapModal('T')">🔄 Solicitar Troca</button>
+            </div>
+
+            <!-- Noite -->
+            <div class="editor-slot">
+                <div class="editor-label">🌙 Noite (19:00 - 07:00)</div>
+                <div class="slot-input-group">
+                    <select id="select-N" onchange="onSelectChange('N')">
+                        <option value="">-- Vazio --</option>
+                        {% for m in medicos %}
+                        <option value="{{ m.id }}">{{ m.nome }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn-action btn-replicate-mini" onclick="replicateShift('N')" title="Repetir para o resto do mês">🔁</button>
+                    <button class="btn-action btn-delete-mini" onclick="deleteShift('N')" title="Excluir">✕</button>
+                </div>
+                <button id="btn-swap-N" class="btn-request-swap" onclick="openSwapModal('N')">🔄 Solicitar Troca</button>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-close-modal" onclick="saveAllAndClose()">💾 Salvar e Sair</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Solicitação de Troca -->
+<div class="modal-overlay" id="swapModal" onclick="this.style.display='none'">
+    <div class="modal-content swap-modal" onclick="event.stopPropagation()">
+        <header class="modal-header">
+            <h2 class="modal-title">🔄 Solicitar Troca</h2>
+            <p class="modal-date" id="swapDateDisplay"></p>
+        </header>
+
+        <form class="swap-form" id="swapForm">
+            <input type="hidden" id="swap-plantao-id">
+            <div class="swap-info">
+                Você está sugerindo uma troca ou substituição para o plantão de <strong id="swap-period-name"></strong>.
+            </div>
+            
+            <div class="form-group">
+                <label style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; display: block;">Substituto Sugerido</label>
+                <div class="swap-select-wrapper">
+                    <select id="swap-medico-novo" required>
+                        <option value="">-- Selecione o Médico --</option>
+                        {% for m in medicos %}
+                            <option value="{{ m.id }}">{{ m.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; display: block;">Justificativa/Mensagem (Opcional)</label>
+                <textarea id="swap-mensagem" class="swap-textarea" placeholder="Ex: Preciso trocar pois tenho um congresso neste dia..."></textarea>
+            </div>
+
+            <button type="button" onclick="sendSwapRequest()" class="btn-submit-swap">
+                Enviar para Aprovação do Admin
+            </button>
+        </form>
+    </div>
+</div>
+
+{{ shifts_json|json_script:"shifts-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentDayStr = '';
+    let pendingSaves = {}; // { period: medicoId } — mudanças pendentes pelo auto-save
+    let savingIndicators = {}; // controla os spinners por período
+    const shiftsData = JSON.parse(document.getElementById('shifts-data').textContent);
+    const currentUserMedicoId = "{{ user.perfil_medico.id|default:'' }}";
+    const CSRF = '{{ csrf_token }}';
+
+    const periodNames = {'D': 'Dia', 'M': 'Manhã', 'T': 'Tarde', 'N': 'Noite'};
+
+    function openDayModal(year, month, day) {
+        const y = year;
+        const m = String(month).padStart(2, '0');
+        const d = String(day).padStart(2, '0');
+        currentDayStr = `${y}-${m}-${d}`;
+        pendingSaves = {};
+        const shiftsForDay = shiftsData[day];
+        const isAdmin = "{{ user.is_superuser|yesno:'true,false' }}" === 'true';
+
+        document.getElementById('modalDateDisplay').innerText = `${day}/${month}/${year}`;
+        
+        ['D', 'M', 'T', 'N'].forEach(p => {
+            const select = document.getElementById(`select-${p}`);
+            const swapBtn = document.getElementById(`btn-swap-${p}`);
+            const replicateBtn = select.nextElementSibling;
+            const deleteBtn = replicateBtn.nextElementSibling;
+            
+            select.value = "";
+            select.disabled = false;
+            swapBtn.style.display = "none";
+            deleteBtn.style.display = "flex";
+            replicateBtn.style.display = isAdmin ? "flex" : "none";
+            
+            // Limpa indicador de salvo
+            showSavedIndicator(p, false);
+
+            if (shiftsForDay && shiftsForDay[p]) {
+                const shift = shiftsForDay[p];
+                const isOwner = currentUserMedicoId && parseInt(shift.medico_id) === parseInt(currentUserMedicoId);
+                
+                select.value = shift.medico_id;
+                
+                if (!isAdmin) {
+                    select.disabled = true;
+                    swapBtn.style.display = "flex";
+                    swapBtn.dataset.shiftId = shift.id;
+                    replicateBtn.style.display = "none";
+                    
+                    if (isOwner) {
+                        deleteBtn.style.display = "flex";
+                    } else {
+                        deleteBtn.style.display = "none";
+                    }
+                } else {
+                    // Admin pode ver tudo
+                    replicateBtn.style.display = "flex";
+                    deleteBtn.style.display = "flex";
+                }
+            } else {
+                // Sem plantão
+                if (!isAdmin && !currentUserMedicoId) {
+                    select.disabled = true;
+                    deleteBtn.style.display = "none";
+                    replicateBtn.style.display = "none";
+                }
+            }
+        });
+
+        document.getElementById('dayModal').classList.add('active');
+    }
+
+    // Chamada pelo onchange do select — salva imediatamente
+    function onSelectChange(period) {
+        const medicoId = document.getElementById(`select-${period}`).value;
+        if (!medicoId) {
+            // Se limpou a seleção, remove do pendingSaves
+            delete pendingSaves[period];
+            showSavedIndicator(period, false);
+            return;
+        }
+
+        // Guarda no mapa de pendentes e já executa o save
+        pendingSaves[period] = medicoId;
+        saveShiftSilent(period, medicoId);
+    }
+
+    // Salva um período sem reload — mostra indicador ✓
+    function saveShiftSilent(period, medicoId) {
+        showSavedIndicator(period, 'saving');
+        const formData = new FormData();
+        formData.append('medico_id', medicoId);
+        formData.append('data', currentDayStr);
+        formData.append('periodo', period);
+
+        fetch('/plantoes/atualizar/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': CSRF }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showSavedIndicator(period, true);
+                delete pendingSaves[period]; // marcado como salvo
+            } else {
+                showSavedIndicator(period, false);
+                alert('Erro ao salvar ' + periodNames[period] + ': ' + data.message);
+            }
+        })
+        .catch(() => {
+            showSavedIndicator(period, false);
+            alert('Erro de conexão ao salvar o plantão.');
+        });
+    }
+
+    // Exibe um indicador visual de status de salvamento
+    function showSavedIndicator(period, state) {
+        const select = document.getElementById(`select-${period}`);
+        const wrapper = select.closest('.slot-input-group');
+        let indicator = wrapper.querySelector('.save-indicator');
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.className = 'save-indicator';
+            wrapper.appendChild(indicator);
+        }
+        if (state === 'saving') {
+            indicator.textContent = '⏳';
+            indicator.title = 'Salvando...';
+        } else if (state === true) {
+            indicator.textContent = '✅';
+            indicator.title = 'Salvo!';
+        } else {
+            indicator.textContent = '';
+            indicator.title = '';
+        }
+    }
+
+    // Botão "Salvar e Sair" — salva pendentes e fecha
+    async function saveAllAndClose() {
+        const btn = document.querySelector('.btn-close-modal');
+        btn.disabled = true;
+        btn.textContent = '⏳ Salvando...';
+
+        const periods = Object.keys(pendingSaves);
+        const promises = periods.map(p => {
+            const medicoId = pendingSaves[p];
+            const formData = new FormData();
+            formData.append('medico_id', medicoId);
+            formData.append('data', currentDayStr);
+            formData.append('periodo', p);
+            return fetch('/plantoes/atualizar/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': CSRF }
+            }).then(r => r.json());
+        });
+
+        try {
+            const results = await Promise.all(promises);
+            const errors = results.filter(r => r.status !== 'success');
+            if (errors.length > 0) {
+                alert('Alguns plantões não foram salvos: ' + errors.map(e => e.message).join(', '));
+            }
+        } catch(e) {
+            alert('Erro de conexão.');
+        }
+
+        document.getElementById('dayModal').classList.remove('active');
+        location.reload();
+    }
+
+    function replicateShift(period) {
+        const medicoId = document.getElementById(`select-${period}`).value;
+        if (!medicoId) {
+            alert("Selecione um médico primeiro para poder replicar.");
+            return;
+        }
+
+        if (!confirm(`Deseja replicar este plantão para todas as próximas ${periodNames[period]}s deste mês?`)) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('medico_id', medicoId);
+        formData.append('data', currentDayStr);
+        formData.append('periodo', period);
+
+        fetch('/plantoes/replicar-mes/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': CSRF }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert("Erro: " + data.message);
+            }
+        });
+    }
+
+    function openSwapModal(period) {
+        const swapBtn = document.getElementById(`btn-swap-${period}`);
+        
+        document.getElementById('swap-plantao-id').value = swapBtn.dataset.shiftId;
+        document.getElementById('swapDateDisplay').innerText = document.getElementById('modalDateDisplay').innerText;
+        document.getElementById('swap-period-name').innerText = periodNames[period];
+        
+        document.getElementById('swapModal').style.display = 'flex';
+    }
+
+    function sendSwapRequest() {
+        const plantaoId = document.getElementById('swap-plantao-id').value;
+        const medicoNovoId = document.getElementById('swap-medico-novo').value;
+        const mensagem = document.getElementById('swap-mensagem').value;
+
+        if (!medicoNovoId) {
+            alert('Por favor, selecione um substituto.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('plantao_id', plantaoId);
+        formData.append('medico_novo_id', medicoNovoId);
+        formData.append('mensagem', mensagem);
+
+        fetch('/plantoes/solicitar-troca/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': CSRF }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                document.getElementById('swapModal').style.display = 'none';
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        });
+    }
+
+    function filterDoctors() {
+        const query = document.getElementById('doctorSearch').value.toLowerCase();
+        const cards = document.querySelectorAll('.doctor-card');
+        cards.forEach(card => {
+            const name = card.dataset.name;
+            card.style.display = name.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    function deleteShift(period) {
+        if (!confirm("Remover plantão de " + periodNames[period] + "?")) return;
+        const formData = new FormData();
+        formData.append('data', currentDayStr);
+        formData.append('periodo', period);
+
+        fetch('/plantoes/excluir/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': CSRF }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById(`select-${period}`).value = '';
+                delete pendingSaves[period];
+                showSavedIndicator(period, false);
+            } else {
+                alert("Erro: " + data.message);
+            }
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('dayModal').classList.remove('active');
+        location.reload();
+    }
+
+    function checkClose(e) {
+        if (e.target.id === 'dayModal') saveAllAndClose();
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        if (tab === 'shifts') {
+            document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            document.getElementById('shifts-tab').classList.add('active');
+        } else {
+            document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            document.getElementById('announcements-tab').classList.add('active');
+        }
+    }
+
+    function filterShifts() {
+        const query = document.getElementById('shiftSearch').value.toLowerCase();
+        document.querySelectorAll('.sidebar-shift-item').forEach(item => {
+            const searchData = item.dataset.search;
+            item.style.display = searchData.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    // Centraliza o mês ativo na barra de navegação ao carregar a página
+    document.addEventListener('DOMContentLoaded', function () {
+        const nav = document.querySelector('.month-nav');
+        const activeLink = nav ? nav.querySelector('.month-nav-link.active') : null;
+        if (nav && activeLink) {
+            const navCenter = nav.offsetWidth / 2;
+            const linkCenter = activeLink.offsetLeft + activeLink.offsetWidth / 2;
+            nav.scrollLeft = linkCenter - navCenter;
+        }
+    });
+</script>
+{% endblock %}

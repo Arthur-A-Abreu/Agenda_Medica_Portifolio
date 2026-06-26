@@ -1,0 +1,575 @@
+/* ══════════════════════════════════════════
+   CALENDÁRIO DE PLANTÕES — Estilos Específicos
+   Aura Médica: Limpo, Profissional, Moderno
+   ══════════════════════════════════════════ */
+
+.calendar-page {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    min-height: calc(100vh - var(--topbar-height) - 4rem);
+}
+
+/* ── Header de Navegação ── */
+.calendar-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--bg-card);
+    padding: 1.25rem;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
+}
+
+.current-month-display {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.month-nav {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--bg-body);
+    border-radius: 12px;
+    width: 100%;
+    justify-content: space-between;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+
+.month-nav::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.month-nav-link {
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex: 1;
+    text-align: center;
+}
+
+.month-nav-link:hover {
+    background: var(--green-100);
+    color: var(--green-800);
+}
+
+.month-nav-link.active {
+    background: var(--accent-primary);
+    color: white;
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+/* ── Grid do Calendário ── */
+.calendar-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    height: fit-content; /* Permite que o container cresça com o conteúdo */
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    flex: 1;
+}
+
+.calendar-weekday {
+    padding: 0.85rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-hover);
+}
+
+.calendar-day {
+    min-height: 130px;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.6rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    background: var(--bg-card);
+    position: relative;
+}
+
+.calendar-day:nth-child(7n) { border-right: none; }
+
+.calendar-day:hover {
+    background: var(--bg-hover);
+    z-index: 2;
+    box-shadow: inset 0 0 0 2px var(--accent-primary);
+}
+
+.calendar-day.other-month {
+    background: var(--bg-body);
+    opacity: 0.45;
+}
+
+.day-number {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 0.6rem;
+    display: block;
+}
+
+.calendar-day:hover .day-number {
+    color: var(--accent-primary);
+}
+
+/* ── Plantões no Grid ── */
+.shifts-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.shift-tag {
+    font-size: 0.68rem;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: var(--bg-body);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.shift-tag::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.shift-tag.period-D::before { background: #38bdf8; } /* Dia - Céu */
+.shift-tag.period-M::before { background: #fbbf24; } /* Manhã - Sol */
+.shift-tag.period-T::before { background: #f97316; } /* Tarde - Sol forte */
+.shift-tag.period-N::before { background: #6366f1; } /* Noite - Lua */
+
+.shift-tag .doctor-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Sidebar de Médicos ── */
+.doctor-sidebar {
+    background: var(--bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.sidebar-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.search-box {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.doctor-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-right: 0.25rem;
+}
+
+.doctor-list::-webkit-scrollbar {
+    width: 4px;
+}
+.doctor-list::-webkit-scrollbar-thumb {
+    background: var(--border-dark);
+    border-radius: 10px;
+}
+
+.doctor-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--bg-card);
+    text-decoration: none;
+    color: inherit;
+}
+
+.doctor-card:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-hover);
+    transform: scale(1.02);
+}
+
+.doctor-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--green-100), var(--green-200));
+    color: var(--green-800);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.doctor-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.doctor-info { flex: 1; min-width: 0; }
+.doctor-name-list { 
+    font-size: 0.9rem; 
+    font-weight: 600; 
+    display: block; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+.doctor-stats-list { font-size: 0.75rem; color: var(--text-muted); }
+
+.doctor-card .badge {
+    padding: 4px 8px;
+    background: var(--green-100);
+    color: var(--green-800);
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* ── Modal de Edição de Dia ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 26, 18, 0.6);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content {
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 500px;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    border: 1px solid var(--border-color);
+    position: relative;
+    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
+
+.modal-header {
+    margin-bottom: 1.75rem;
+    text-align: center;
+}
+
+.modal-title { font-size: 1.5rem; font-weight: 800; color: var(--accent-primary); letter-spacing: -0.02em; }
+.modal-date { color: var(--text-muted); font-size: 0.95rem; font-weight: 500; margin-top: 0.25rem; }
+
+.shift-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.editor-slot {
+    background: var(--bg-body);
+    padding: 1.25rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.editor-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.slot-input-group {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.slot-input-group select {
+    flex: 1;
+    padding: 0.7rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-dark);
+    background: var(--bg-sidebar);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.btn-action {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+}
+
+.btn-save-mini { background: var(--accent-primary); color: white; }
+.btn-save-mini:hover { background: var(--accent-hover); transform: scale(1.05); }
+
+.btn-delete-mini { background: #fee2e2; color: #ef4444; }
+.btn-delete-mini:hover { background: #fecaca; transform: scale(1.05); }
+
+.btn-replicate-mini { background: #e0f2fe; color: #0369a1; }
+.btn-replicate-mini:hover { background: #bae6fd; transform: scale(1.05); }
+
+/* ── Indicador de Auto-Save ── */
+.save-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    min-width: 28px;
+    animation: fadeInIndicator 0.2s ease;
+    user-select: none;
+}
+
+@keyframes fadeInIndicator {
+    from { opacity: 0; transform: scale(0.6); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-footer {
+    margin-top: 2rem;
+}
+
+.btn-close-modal {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--green-600, #16a34a));
+    color: white;
+    border: none;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px var(--accent-glow);
+    letter-spacing: 0.01em;
+}
+
+.btn-close-modal:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--accent-glow);
+}
+
+.btn-close-modal:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Responsivo ── */
+@media (max-width: 1200px) {
+    .calendar-page {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: auto;
+        gap: 1.5rem;
+    }
+    
+    .calendar-container {
+        height: auto;
+    }
+
+    .doctor-sidebar {
+        order: 2;
+        max-height: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-content {
+        padding: 1rem 0.75rem;
+    }
+
+    .calendar-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+        padding: 1rem;
+    }
+
+    .current-month-display {
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .month-nav {
+        justify-content: space-between;
+        padding-bottom: 0.5rem;
+    }
+
+    .month-nav-link {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.68rem;
+        flex: 1;
+        text-align: center;
+    }
+
+    .calendar-container {
+        overflow-x: auto;
+        border-radius: 12px;
+    }
+
+    .calendar-grid {
+        min-width: 650px; /* Mantém o grid legível com scroll lateral */
+    }
+
+    .calendar-day {
+        min-height: 120px;
+        padding: 0.4rem;
+    }
+
+    .day-number {
+        font-size: 0.85rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .shift-tag {
+        padding: 2px 4px;
+        font-size: 0.62rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-grid {
+        min-width: 550px;
+    }
+    
+    .calendar-day {
+        min-height: 80px;
+    }
+
+    .shift-tag .doctor-name {
+        max-width: 45px;
+        text-overflow: clip;
+    }
+
+    .sidebar-title {
+        font-size: 1rem;
+    }
+
+    .doctor-card {
+        padding: 0.6rem;
+    }
+
+    .doctor-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Ajustes para telas muito pequenas ou zoom alto */
+@media (max-width: 360px) {
+    .calendar-grid {
+        min-width: 480px;
+    }
+    
+    .shift-tag .doctor-name {
+        display: none;
+    }
+    
+    .shift-tag::after {
+        content: attr(title);
+        display: none; /* Opcional: mostrar apenas o ponto colorido */
+    }
+}

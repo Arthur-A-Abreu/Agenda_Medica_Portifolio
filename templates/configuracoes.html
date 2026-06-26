@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configurações do Sistema{% endblock %}
+{% block page_title %}⚙️ Configurações{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/configuracoes.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <p class="subtitle">Personalize o funcionamento e a aparência do seu MedAgenda.</p>
+
+    <form method="post" enctype="multipart/form-data" class="settings-card">
+        {% csrf_token %}
+        
+        <!-- Tabs Navigation -->
+        <div class="settings-tabs">
+            <button type="button" class="tab-btn active" onclick="switchTab('hospital')">🏥 Hospital</button>
+            <button type="button" class="tab-btn" onclick="switchTab('turnos')">🕙 Turnos</button>
+            <button type="button" class="tab-btn" onclick="switchTab('notificacoes')">🔔 Notificações</button>
+            <button type="button" class="tab-btn" onclick="switchTab('aparencia')">🎨 Aparência</button>
+        </div>
+
+        <div class="tab-content">
+            <!-- Section: Hospital -->
+            <section id="tab-hospital" class="settings-section active">
+                <div class="settings-group">
+                    <h3><span>🏢</span> Informações da Instituição</h3>
+                    <div class="field-grid">
+                        <div class="form-field full" style="grid-column: span 2;">
+                            <label for="nome_hospital">Nome do Hospital/Clínica</label>
+                            <input type="text" id="nome_hospital" name="nome_hospital" value="{{ config.nome_hospital }}" placeholder="Ex: Hospital Central">
+                        </div>
+                        <div class="form-field full" style="grid-column: span 2;">
+                            <label for="endereco">Endereço</label>
+                            <input type="text" id="endereco" name="endereco" value="{{ config.endereco|default:'' }}" placeholder="Rua exemplo, 123 - Cidade">
+                        </div>
+                        <div class="form-field full" style="grid-column: span 2;">
+                            <label>Logo do Hospital</label>
+                            <div class="logo-preview-container">
+                                {% if config.logo_hospital %}
+                                <img src="{{ config.logo_hospital.url }}" class="logo-preview" id="logo-preview-img">
+                                {% else %}
+                                <div class="logo-preview" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;">🏥</div>
+                                {% endif %}
+                                <input type="file" name="logo_hospital" accept="image/*" onchange="previewLogo(this)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Turnos -->
+            <section id="tab-turnos" class="settings-section">
+                <div class="settings-group">
+                    <h3><span>⏰</span> Horários de Início dos Turnos</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Defina os horários de referência para cada período do dia.</p>
+                    <div class="field-grid">
+                        <div class="form-field">
+                            <label for="horario_manha">Período Manhã</label>
+                            <input type="text" id="horario_manha" name="horario_manha" value="{{ config.horario_manha }}" placeholder="07:00">
+                        </div>
+                        <div class="form-field">
+                            <label for="horario_tarde">Período Tarde</label>
+                            <input type="text" id="horario_tarde" name="horario_tarde" value="{{ config.horario_tarde }}" placeholder="13:00">
+                        </div>
+                        <div class="form-field">
+                            <label for="horario_noite">Período Noite</label>
+                            <input type="text" id="horario_noite" name="horario_noite" value="{{ config.horario_noite }}" placeholder="19:00">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Notificações -->
+            <section id="tab-notificacoes" class="settings-section">
+                <div class="settings-group">
+                    <h3><span>✉️</span> Alertas e Avisos</h3>
+                    
+                    <div class="toggle-group">
+                        <div class="toggle-label-info">
+                            <span class="toggle-name">E-mail de Confirmação</span>
+                            <span class="toggle-desc">Enviar e-mail automático ao escalar um médico.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="notificacoes_email" {% if config.notificacoes_email %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-label-info">
+                            <span class="toggle-name">Avisos via WhatsApp</span>
+                            <span class="toggle-desc">Notificar profissionais 24h antes do plantão.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="notificacoes_whatsapp" {% if config.notificacoes_whatsapp %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Aparência -->
+            <section id="tab-aparencia" class="settings-section">
+                <div class="settings-group">
+                    <h3><span>🎭</span> Personalização Visual</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">As alterações de tema são aplicadas a todos os usuários do sistema.</p>
+                    
+                    <div class="toggle-group">
+                        <div class="toggle-label-info">
+                            <span class="toggle-name">Forçar Modo Escuro</span>
+                            <span class="toggle-desc">Ativar a interface escura por padrão para todos.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="tema_escuro" id="toggle-dark-mode" onchange="previewTheme(this)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="save-bar">
+            <button type="submit" class="btn-save-settings">💾 Salvar Configurações</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(tabId) {
+        // Update Buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.innerText.toLowerCase().includes(tabId)) btn.classList.add('active');
+        });
+
+        // Update Sections
+        document.querySelectorAll('.settings-section').forEach(sec => {
+            sec.classList.remove('active');
+        });
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function previewLogo(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('logo-preview-img');
+                if (img) img.src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function previewTheme(checkbox) {
+        if (checkbox.checked) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    }
+</script>
+{% endblock %}

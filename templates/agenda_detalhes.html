@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Agenda de {{ medico.nome }}{% endblock %}
+{% block page_title %}🗓️ Detalhes da Agenda{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/agenda.css' %}">
+<style>
+    /* --- Premium Export Buttons (Forçando carregamento) --- */
+    .btn-export {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: linear-gradient(135deg, #0f766e 0%, #059669 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        padding: 0.85rem 1.75rem;
+        border-radius: 9999px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        overflow: hidden;
+        z-index: 1;
+    }
+
+    .btn-export::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.6s ease;
+        z-index: -1;
+    }
+
+    .btn-export:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 25px rgba(5, 150, 105, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+        background: linear-gradient(135deg, #115e59 0%, #047857 100%);
+    }
+
+    .btn-export:hover::before {
+        left: 100%;
+    }
+
+    .btn-export:active {
+        transform: translateY(1px) scale(0.98);
+        box-shadow: 0 2px 10px rgba(5, 150, 105, 0.3);
+    }
+
+    .btn-export-icon {
+        font-size: 1.3rem;
+        transition: transform 0.4s ease;
+    }
+
+    .btn-export:hover .btn-export-icon {
+        transform: translateY(-2px) scale(1.1);
+    }
+
+    /* --- Month Navigation (Copied from calendario) --- */
+    .calendar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        background: var(--bg-card);
+        padding: 1.25rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+    }
+
+    .current-month-display {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .month-nav {
+        display: flex;
+        gap: 0.25rem;
+        padding: 0.25rem;
+        background: var(--bg-body);
+        border-radius: 12px;
+        width: 100%;
+        justify-content: space-between;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .month-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .month-nav-link {
+        padding: 0.5rem 0.9rem;
+        border-radius: 10px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-decoration: none;
+        color: var(--text-muted);
+        white-space: nowrap;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        flex: 1;
+        text-align: center;
+    }
+
+    .month-nav-link:hover {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--primary-color);
+    }
+
+    .month-nav-link.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="calendar-header">
+    <div class="current-month-display">
+        <span>🗓️</span> {{ current_month_name }}
+    </div>
+    <nav class="month-nav">
+        {% for m in months_nav %}
+        <a href="?year={{ m.year }}&month={{ m.month }}" 
+           class="month-nav-link {% if m.active %}active{% endif %}"
+           title="{{ m.full_name }}">
+            {{ m.name }}
+        </a>
+        {% endfor %}
+    </nav>
+</header>
+
+<div class="agenda-container">
+    <div class="agenda-header">
+        {% if medico.foto %}
+        <img src="{{ medico.foto.url }}" alt="{{ medico.nome }}" class="header-photo">
+        {% else %}
+        <div class="medico-placeholder-large">{{ medico.nome|first|upper }}</div>
+        {% endif %}
+        
+        <div class="header-info">
+            <h2>{{ medico.nome }}</h2>
+            <p><strong>CRM:</strong> {{ medico.crm }} | <strong>E-mail:</strong> {{ medico.email|default:"—" }}</p>
+            
+            <div class="stats-row">
+                <div class="stat-card">
+                    <span class="stat-label">Total de Plantões</span>
+                    <span class="stat-value">{{ total_plantoes }}</span>
+                </div>
+                <div class="stat-card" style="flex: 2;">
+                    <span class="stat-label">Breakdown por Período</span>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                        <div title="Dia" style="font-size: 0.85rem; font-weight: 700; color: #0369a1;">🌤️ {{ total_dia }}</div>
+                        <div title="Manhã" style="font-size: 0.85rem; font-weight: 700; color: #92400e;">🌅 {{ total_manha }}</div>
+                        <div title="Tarde" style="font-size: 0.85rem; font-weight: 700; color: #9a3412;">☀️ {{ total_tarde }}</div>
+                        <div title="Noite" style="font-size: 0.85rem; font-weight: 700; color: #166534;">🌙 {{ total_noite }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if user.is_superuser %}
+            <div class="action-row" style="margin-top: 1.5rem;">
+                <a href="{% url 'exportar_agenda_excel' medico.id %}?year={{ ano_atual }}&month={{ mes_atual }}" class="btn-export">
+                    <span class="btn-export-icon">📥</span> Baixar Relatório (Excel)
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="agenda-timeline">
+        <h3 class="section-title">🚀 Próximos Plantões</h3>
+        {% for data, plantoes in agenda_futura %}
+        <div class="day-group">
+            <div class="day-marker"></div>
+            <div class="day-title">
+                <span>📅</span> {{ data|date:"d \d\e F, Y" }} 
+                <small style="color: var(--text-muted); font-weight: 400; margin-left: 0.5rem;">— {{ data|date:"l" }}</small>
+            </div>
+            
+            {% for plantao in plantoes %}
+            <div class="shift-card" id="shift-{{ plantao.id }}">
+                <div class="shift-time">
+                    <span class="period-badge period-{{ plantao.periodo }}">
+                        {{ plantao.get_periodo_display }}
+                    </span>
+                    <div class="shift-info-text">
+                        <span class="shift-label">Plantão Confirmado</span>
+                        <span class="shift-sub">Escala regular do hospital</span>
+                    </div>
+                </div>
+                <div class="shift-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select onchange="atualizarStatus({{ plantao.id }}, this.value)" 
+                            class="status-select" 
+                            data-status="{{ plantao.status }}">
+                        <option value="P" {% if plantao.status == 'P' %}selected{% endif %}>📅 Agendado</option>
+                        <option value="C" {% if plantao.status == 'C' %}selected{% endif %}>✅ Concluído</option>
+                        <option value="F" {% if plantao.status == 'F' %}selected{% endif %}>❌ Faltou</option>
+                    </select>
+                    <a href="{% url 'calendario' %}?year={{ data.year }}&month={{ data.month }}" class="btn-action btn-edit-shift" title="Gerenciar no Calendário">
+                        ⚙️
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <p style="font-size: 1.25rem; color: var(--text-muted);">Não há plantões futuros agendados.</p>
+            <a href="{% url 'calendario' %}" class="btn btn-primary" style="margin-top: 1.5rem; display: inline-block; text-decoration: none;">Ir para o Calendário</a>
+        </div>
+        {% endfor %}
+
+        {% if agenda_passada %}
+        <div class="history-container">
+            <details>
+                <summary class="history-toggle">📦 Ver Histórico de Plantões ({{ agenda_passada|length }} dias passados)</summary>
+                <div style="margin-top: 2rem;">
+                    {% for data, plantoes in agenda_passada %}
+                    <div class="day-group">
+                        <div class="day-marker" style="background: #9ca3af;"></div>
+                        <div class="day-title" style="opacity: 0.6;">
+                            <span>📅</span> {{ data|date:"d \d\e F, Y" }} 
+                            <small style="color: var(--text-muted); font-weight: 400; margin-left: 0.5rem;">— {{ data|date:"l" }}</small>
+                        </div>
+                        
+                        {% for plantao in plantoes %}
+                        <div class="shift-card past" id="shift-{{ plantao.id }}">
+                            <div class="shift-time">
+                                <span class="period-badge badge-past">
+                                    {{ plantao.get_periodo_display }}
+                                </span>
+                                <div class="shift-info-text">
+                                    <span class="shift-label" style="color: #6b7280;">Plantão Realizado</span>
+                                    <span class="shift-sub">Finalizado e arquivado</span>
+                                </div>
+                            </div>
+                            <div class="shift-actions">
+                                {% if request.user.is_superuser %}
+                                <select onchange="atualizarStatus({{ plantao.id }}, this.value)" 
+                                        class="status-select" 
+                                        data-status="{{ plantao.status }}">
+                                    <option value="P" {% if plantao.status == 'P' %}selected{% endif %}>📅 Agendado</option>
+                                    <option value="C" {% if plantao.status == 'C' %}selected{% endif %}>✅ Concluído</option>
+                                    <option value="F" {% if plantao.status == 'F' %}selected{% endif %}>❌ Faltou</option>
+                                </select>
+                                {% else %}
+                                    {% if plantao.status == 'C' %}
+                                    <span class="status-badge status-C">✅ CONCLUÍDO</span>
+                                    {% elif plantao.status == 'F' %}
+                                    <span class="status-badge status-F">❌ FALTOU</span>
+                                    {% else %}
+                                    <span class="status-badge status-P">📅 AGENDADO</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </details>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function atualizarStatus(plantaoId, novoStatus) {
+    const formData = new FormData();
+    formData.append('plantao_id', plantaoId);
+    formData.append('status', novoStatus);
+
+    fetch('{% url "mudar_status_plantao" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const select = document.querySelector(`select[onchange="atualizarStatus(${plantaoId}, this.value)"]`);
+            if (select) {
+                // Atualiza o atributo para mudar a cor via CSS
+                select.setAttribute('data-status', novoStatus);
+                
+                const originalBg = select.style.background;
+                select.style.background = '#dcfce7';
+                setTimeout(() => { select.style.background = ''; }, 1000);
+            }
+        } else {
+            alert('Erro ao atualizar status: ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

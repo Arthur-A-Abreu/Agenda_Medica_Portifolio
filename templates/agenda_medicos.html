@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Agendas{% endblock %}
+{% block page_title %}🗓️ Agendas por Médico (Mês Atual: {{ mes_atual }}/{{ ano_atual }}){% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/agenda.css' %}">
+<style>
+    /* --- Premium Export Buttons (Forçando carregamento) --- */
+    .btn-export {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: linear-gradient(135deg, #0f766e 0%, #059669 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        padding: 0.85rem 1.75rem;
+        border-radius: 9999px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        overflow: hidden;
+        z-index: 1;
+    }
+
+    .btn-export::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.6s ease;
+        z-index: -1;
+    }
+
+    .btn-export:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 25px rgba(5, 150, 105, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+        background: linear-gradient(135deg, #115e59 0%, #047857 100%);
+    }
+
+    .btn-export:hover::before {
+        left: 100%;
+    }
+
+    .btn-export:active {
+        transform: translateY(1px) scale(0.98);
+        box-shadow: 0 2px 10px rgba(5, 150, 105, 0.3);
+    }
+
+    .btn-export-icon {
+        font-size: 1.3rem;
+        transition: transform 0.4s ease;
+    }
+
+    .btn-export:hover .btn-export-icon {
+        transform: translateY(-2px) scale(1.1);
+    }
+
+    /* --- Month Navigation (Copied from calendario) --- */
+    .calendar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        background: var(--bg-card);
+        padding: 1.25rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+    }
+
+    .current-month-display {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .month-nav {
+        display: flex;
+        gap: 0.25rem;
+        padding: 0.25rem;
+        background: var(--bg-body);
+        border-radius: 12px;
+        width: 100%;
+        justify-content: space-between;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .month-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .month-nav-link {
+        padding: 0.5rem 0.9rem;
+        border-radius: 10px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-decoration: none;
+        color: var(--text-muted);
+        white-space: nowrap;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        flex: 1;
+        text-align: center;
+    }
+
+    .month-nav-link:hover {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--primary-color);
+    }
+
+    .month-nav-link.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<p class="subtitle">Selecione um profissional para visualizar seu histórico e próximos plantões.</p>
+
+<header class="calendar-header">
+    <div class="current-month-display">
+        <span>🗓️</span> {{ current_month_name }}
+    </div>
+    <nav class="month-nav">
+        {% for m in months_nav %}
+        <a href="?year={{ m.year }}&month={{ m.month }}" 
+           class="month-nav-link {% if m.active %}active{% endif %}"
+           title="{{ m.full_name }}">
+            {{ m.name }}
+        </a>
+        {% endfor %}
+    </nav>
+</header>
+
+{% if user.is_superuser %}
+<div class="action-bar" style="margin-bottom: 2rem; display: flex; justify-content: flex-end;">
+    <a href="{% url 'exportar_agenda_geral_excel' %}?year={{ ano_atual }}&month={{ mes_atual }}" class="btn-export">
+        <span class="btn-export-icon">📊</span> Baixar Relatório de Todos (Excel)
+    </a>
+</div>
+{% endif %}
+
+<div class="medico-grid">
+    {% for medico in medicos %}
+    <a href="{% url 'agenda_detalhes' medico.id %}?year={{ ano_atual }}&month={{ mes_atual }}" class="medico-card" id="medico-{{ medico.id }}">
+        {% if medico.foto %}
+        <img src="{{ medico.foto.url }}" alt="{{ medico.nome }}" class="medico-photo">
+        {% else %}
+        <div class="medico-avatar-placeholder">{{ medico.nome|first|upper }}</div>
+        {% endif %}
+        
+        <div class="medico-info">
+            <h3>{{ medico.nome }}</h3>
+            <p>CRM: {{ medico.crm }}</p>
+            <div class="badge-plantoes">{{ medico.total_plantoes }} Plantões registrados</div>
+            <div class="periodos-count" style="display: flex; gap: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; color: #4b5563;">
+                <span title="Dia" style="display: flex; align-items: center; gap: 0.25rem;">🌤️ {{ medico.total_dia }}</span>
+                <span title="Manhã" style="display: flex; align-items: center; gap: 0.25rem;">🌅 {{ medico.total_manha }}</span>
+                <span title="Tarde" style="display: flex; align-items: center; gap: 0.25rem;">☀️ {{ medico.total_tarde }}</span>
+                <span title="Noite" style="display: flex; align-items: center; gap: 0.25rem;">🌙 {{ medico.total_noite }}</span>
+            </div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="empty-state">
+        <p>Nenhum médico encontrado no sistema.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

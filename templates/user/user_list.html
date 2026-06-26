@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestão de Usuários{% endblock %}
+{% block page_title %}👥 Usuários{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-title">
+        <span>➕</span> Criar Novo Usuário
+    </div>
+    <form method="post" action="{% url 'user_create' %}">
+        {% csrf_token %}
+        <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+            <div class="form-group">
+                <label for="username">Nome de Usuário</label>
+                <input type="text" id="username" name="username" placeholder="ex: dr.silva" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-primary);">
+            </div>
+            <div class="form-group">
+                <label for="password">Senha Inicial</label>
+                <input type="password" id="password" name="password" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-primary);">
+            </div>
+            <div class="form-group">
+                <label for="medico_id">Vincular a Médico (opcional)</label>
+                <select id="medico_id" name="medico_id" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-primary);">
+                    <option value="">-- Nenhum --</option>
+                    {% for m in medicos_sem_usuario %}
+                    <option value="{{ m.id }}">{{ m.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; padding-top: 1.5rem;">
+                <input type="checkbox" id="is_admin" name="is_admin" style="width: 20px; height: 20px;">
+                <label for="is_admin" style="margin: 0;">Administrador?</label>
+            </div>
+        </div>
+        <button type="submit" class="btn-create-user">💾 Criar Usuário</button>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-title">
+        <span>📋</span> Lista de Usuários ({{ users.count }})
+    </div>
+    <div class="table-wrap" style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem;">Usuário</th>
+                    <th style="padding: 1rem;">Nível</th>
+                    <th style="padding: 1rem;">Vínculo Médico</th>
+                    <th style="padding: 1rem;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 32px; height: 32px; background: var(--bg-active); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent-primary);">
+                                {{ u.username|first|upper }}
+                            </div>
+                            <strong>{{ u.username }}</strong>
+                        </div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        {% if u.is_superuser %}
+                        <span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">ADMIN</span>
+                        {% else %}
+                        <span style="background: #dcfce7; color: #166534; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">MÉDICO</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        {% if u.perfil_medico %}
+                        <span style="color: var(--text-primary);">👨‍⚕️ {{ u.perfil_medico.nome }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-style: italic;">Sem vínculo</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        <form method="post" action="{% url 'user_delete' u.pk %}" onsubmit="return confirm('Tem certeza que deseja remover o acesso de {{ u.username }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-icon-delete" title="Remover Usuário">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .btn-create-user {
+        margin-top: 1.5rem;
+        padding: 0.85rem 2.5rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent-primary), var(--green-600));
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 15px var(--accent-glow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-create-user::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: 0.5s;
+    }
+
+    .btn-create-user:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px var(--accent-glow);
+        filter: brightness(1.1);
+    }
+
+    .btn-create-user:hover::after {
+        left: 100%;
+    }
+
+    .btn-icon-delete {
+        background: rgba(239, 68, 68, 0.1);
+        border: none;
+        color: #ef4444;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .btn-icon-delete:hover {
+        background: #ef4444;
+        color: white;
+        transform: scale(1.1);
+    }
+</style>
+{% endblock %}

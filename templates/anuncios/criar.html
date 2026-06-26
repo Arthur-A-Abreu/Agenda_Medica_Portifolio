@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Criar Anúncio{% endblock %}
+{% block page_title %}📢 Novo Anúncio{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 600px; margin: 0 auto; background: var(--bg-card); padding: 2rem; border-radius: 1rem; border: 1px solid var(--border-color);">
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem;">Título</label>
+            <input type="text" name="titulo" required style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main);">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem;">Conteúdo</label>
+            <textarea name="conteudo" required rows="5" style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main);"></textarea>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label style="display: block; font-weight: 700; margin-bottom: 0.5rem;">Data de Vencimento</label>
+            <input type="date" name="data_vencimento" required style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main);">
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn-create" style="border: none; cursor: pointer; flex: 1; padding: 0.85rem; border-radius: 0.75rem; background: var(--primary-color); color: white; font-weight: 700;">
+                Publicar Anúncio
+            </button>
+            <a href="{% url 'lista_anuncios' %}" style="flex: 1; text-align: center; padding: 0.85rem; border-radius: 0.75rem; border: 1px solid var(--border-color); text-decoration: none; color: var(--text-muted); font-weight: 700;">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

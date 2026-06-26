@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Calendário de Mudanças{% endblock %}
+{% block page_title %}📜 Histórico de Mudanças{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-title">
+        <span>📖</span> Registros de Alterações no Sistema
+    </div>
+    
+    <div class="timeline" style="margin-top: 1.5rem; position: relative; padding-left: 2rem;">
+        <div style="position: absolute; left: 0.75rem; top: 0; bottom: 0; width: 2px; background: var(--border-color);"></div>
+        
+        {% for log in historico %}
+        <div class="log-item" style="position: relative; margin-bottom: 2rem;">
+            <div style="position: absolute; left: -1.65rem; top: 0.25rem; width: 1rem; height: 1rem; border-radius: 50%; background: var(--accent-primary); border: 3px solid var(--bg-card);"></div>
+            
+            <div style="background: var(--bg-body); padding: 1.25rem; border-radius: 14px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+                        {{ log.data_mudanca|date:"d M Y — H:i" }}
+                    </div>
+                    <div style="font-size: 0.75rem; background: var(--accent-glow); color: var(--accent-primary); padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 700;">
+                        ADM: {{ log.autor.username }}
+                    </div>
+                </div>
+                <div style="color: var(--text-primary); font-weight: 600; line-height: 1.5;">
+                    {{ log.descricao }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            Nenhuma mudança registrada no histórico ainda.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Médicos{% endblock %}
+{% block meta_description %}Gerencie os médicos do calendário de plantões{% endblock %}
+{% block page_title %}👨‍⚕️ Médicos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/medicos.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<p class="subtitle">Gerencie os médicos do calendário de plantões</p>
+
+<!-- ── Formulário de Cadastro ── -->
+<div class="card">
+    <div class="card-title">
+        <span>➕</span> Cadastrar Novo Médico
+    </div>
+    <form method="post" enctype="multipart/form-data" action="{% url 'medico_create' %}">
+        {% csrf_token %}
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="nome">Nome completo</label>
+                <input type="text" id="nome" name="nome" placeholder="Dr. João Silva" required>
+            </div>
+            <div class="form-group">
+                <label for="crm">CRM</label>
+                <input type="text" id="crm" name="crm" placeholder="12345-SP" required>
+            </div>
+            <div class="form-group">
+                <label for="numero">Telefone</label>
+                <input type="text" id="numero" name="numero" placeholder="(11) 99999-9999">
+            </div>
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" placeholder="joao@hospital.com">
+            </div>
+            <div class="form-group full">
+                <label for="foto">Foto (opcional)</label>
+                <input type="file" id="foto" name="foto" accept="image/*">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-medico">💾 Salvar Médico</button>
+    </form>
+</div>
+
+<!-- ── Lista de Médicos ── -->
+<div class="card">
+    <div class="card-title">
+        <span>📋</span> Médicos Cadastrados ({{ medicos.count }})
+    </div>
+    <div class="table-wrap">
+        {% if medicos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Médico</th>
+                    <th>CRM</th>
+                    <th>Telefone</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for medico in medicos %}
+                <tr>
+                    <td style="display:flex; align-items:center; gap:.75rem;">
+                        {% if medico.foto %}
+                        <img src="{{ medico.foto.url }}" alt="{{ medico.nome }}" class="foto-thumb">
+                        {% else %}
+                        <div class="avatar-placeholder">{{ medico.nome|first|upper }}</div>
+                        {% endif %}
+                        <span style="font-weight:500;">{{ medico.nome }}</span>
+                    </td>
+                    <td><span class="crm-badge">{{ medico.crm }}</span></td>
+                    <td>{{ medico.numero|default:"—" }}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-edit"
+                                data-id="{{ medico.id }}"
+                                data-nome="{{ medico.nome|escapejs }}"
+                                data-crm="{{ medico.crm|escapejs }}"
+                                data-numero="{{ medico.numero|default:''|escapejs }}"
+                                data-email="{{ medico.email|default:''|escapejs }}"
+                                onclick="abrirEdicaoBtn(this)"
+                                id="btn-edit-{{ medico.id }}">
+                                ✏️ Editar
+                            </button>
+                            <form method="post" action="{% url 'medico_delete' medico.id %}"
+                                onsubmit="return confirm('Tem certeza que deseja apagar {{ medico.nome }}?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-delete" id="btn-delete-{{ medico.id }}">🗑️ Apagar</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.536-.644-2M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.536.644-2M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <p>Nenhum médico cadastrado ainda.</p>
+            <p style="font-size:.8rem;margin-top:.5rem;">Use o formulário acima para adicionar o primeiro! 👆</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Modal de Edição ── -->
+<div class="modal-overlay" id="modalEdicao" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="modalTitle">✏️ Editar Médico</span>
+            <button class="modal-close" onclick="fecharModal()" aria-label="Fechar modal">×</button>
+        </div>
+        <form method="post" enctype="multipart/form-data" id="formEdicao">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_nome">Nome completo</label>
+                    <input type="text" id="edit_nome" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_crm">CRM</label>
+                    <input type="text" id="edit_crm" name="crm" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_numero">Telefone</label>
+                    <input type="text" id="edit_numero" name="numero">
+                </div>
+                <div class="form-group">
+                    <label for="edit_email">E-mail</label>
+                    <input type="email" id="edit_email" name="email">
+                </div>
+                <div class="form-group full">
+                    <label for="edit_foto">Nova foto (opcional)</label>
+                    <input type="file" id="edit_foto" name="foto" accept="image/*">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:1.25rem;" id="btn-salvar-edicao">💾 Salvar Alterações</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/medicos.js' %}"></script>
+{% endblock %}
