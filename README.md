@@ -16,7 +16,7 @@ Um sistema web completo desenvolvido em **Django** para o gerenciamento de escal
 * **Back-end:** Python, Django
 * **Front-end:** HTML5, CSS3, JavaScript
 * **Banco de Dados:** SQLite (Padrão do Django) / [Altere caso esteja usando PostgreSQL, MySQL, etc.]
-* **Outras Bibliotecas:** (Adicione aqui bibliotecas específicas que usou para gerar o Excel, como `pandas` ou `openpyxl`).
+* **Outras Bibliotecas:** `openpyxl`.
 
 ## 📁 Estrutura do Projeto
 
